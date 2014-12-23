@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html ng-app='myApp'>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible"></meta>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport"></meta>
+    <title>home</title>
+    <link class="ui" href="semantic/dist/semantic.css" type="text/css" rel="stylesheet"></link>
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="semantic/dist/semantic.js"></script>
+    <script src="bower_components/angularjs/angular.js"></script>
+</head>
+<body ng-controller="MainController">
+<div class="ui fixed inverted main menu">
+    <div class="container">
+        <a class="launch item"><i class="content icon"></i></a>
+        <div class="title item">
+            <b>Theming:</b> Creating Themes 2
+        </div>
+    </div>
+</div>
+<div class="ui grid">
+    <div class="header">
+        <h1 class="ui header">
+            <i class="plug icon"></i>
+            <div class="content" contenteditable="true">dlab/hive</div>
+        </h1>
+    </div>
+    <div class="ui vertical menu">
+        <a class="active teal item" ng-repeat="item in items">
+            {{item.title}}
+            <div class="ui teal label">1</div>
+        </a>
+        <div class="item">
+            <div class="ui transparent icon input">
+                <input placeholder="Search mail..." type="text">
+                <i class="search icon"></i>
+            </div>
+        </div>
+    </div>
+    <div class="four wide column">
+        <div>title</div>
+        <div>list1</div>
+        <div>list2</div>
+    </div>
+    <div class="ten wide inverted orange column">main</div>
+</div>
+</body>
+<script>
+    var myAppModule = angular.module('myApp', []);
+
+    myAppModule.controller('MainController',
+        function MainController($scope){
+            $scope.items = [{
+                title : "inbox",
+            }, {
+                title : "project"
+            }, {
+                title : "favorite"
+            }];
+        });
+
+</script>
+</html>
