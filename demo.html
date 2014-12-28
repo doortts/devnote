@@ -9,17 +9,61 @@
     <script src="semantic/dist/semantic.js"></script>
     <script src="bower_components/angularjs/angular.js"></script>
 </head>
-<body>
-<div class="ui segment">
+<body ng-app="app">
+<div class="ui segment" ng-controller="myFC">
     <div class="ui vertical segment">
         <p></p>
     </div>
     <div class="ui vertical segment">
-        <p></p>
     </div>
+    <p ng-click="getNo()">click here {{no}}</p>
+    <p ng-click="getNo()">click here2 {{no}}</p>
+    <p ng-click="getNo()">click here3 {{no}}</p>
     <div class="ui vertical segment">
         <p></p>
     </div>
 </div>
+<div class="ui segment" ng-controller="myFC2">
+    <div class="ui vertical segment">
+        <p></p>
+    </div>
+    <div class="ui vertical segment">
+    </div>
+    <p ng-click="getNo()">click here {{no}}</p>
+    <p ng-click="getNo()">click here2 {{no}}</p>
+    <p ng-click="getNo()">click here3 {{no}}</p>
+    <div class="ui vertical segment">
+        <p></p>
+    </div>
+</div>
+<script>
+
+    var app = angular.module('app', []);
+
+    app.controller('myFC', function($scope, myF){
+        $scope.no = myF.getNo();
+        $scope.getNo = function(){
+            console.log("myF.no: ", myF.no);
+            return myF.getNo();
+        }
+    });
+
+    app.controller('myFC2', function($scope, myF){
+        $scope.no = myF.getNo();
+        $scope.getNo = function(){
+            console.log("myF.no: ", myF.no);
+            return myF.getNo();
+        }
+    });
+
+    app.factory('myF', function(){
+        var service = { no: 1,
+            getNo: function(){ console.log(this.no); return this.no++; }
+        };
+
+        return service;
+    });
+
+</script>
 </body>
 </html>
