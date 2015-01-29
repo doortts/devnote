@@ -1,0 +1,15 @@
+extends ../layout
+
+block content
+  form(method="post", action="/login").login.row
+    if typeof return_to != 'undefined'
+      input(type="hidden", name="return_to", value=return_to)
+    fieldset.well.span4.offset4
+      if typeof flashMessage != 'undefined'
+        div.alert.alert-error
+          != __(flashMessage)
+          button(type="button", data-dismiss="alert").close x
+      div.item: input(type="text", name="id", required, placeholder=__("Username"), title=__("Username"))
+      div.item: input(type="password", name="password", required, placeholder=__("Password"), title=__("Password"))
+      div.enter
+        button(type="submit").btn.btn-primary: strong= __("Login")
