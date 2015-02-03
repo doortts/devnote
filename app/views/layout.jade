@@ -1,0 +1,98 @@
+doctype html
+html(lang="ko")
+  head
+    meta(charset="utf-8")
+    title= title
+    - if (typeof locale === 'string') {
+      meta(http-equiv='Content-Language', content='#{locale}')
+    - } else {
+      meta(http-equiv='Content-Language', content='en')
+    - }
+    meta(name="viewport", content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1")
+    meta(http-equiv="X-UA-Compatible", content="IE=EmulateIE7")
+    link(rel='stylesheet', href='/stylesheets/syntax.css')
+    link(rel='stylesheet', href='/bootstrap/css/bootstrap.css')
+    link(rel='stylesheet', href='/bootstrap/css/bootstrap-responsive.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/custom.css')
+    link(rel='stylesheet', href='/codemirror2/lib/codemirror.css')
+    //[if IE 9]><link rel="stylesheet" href="/stylesheets/custom.ie9.css"><![endif]
+    //[if lt IE 9]><script src="/scripts/html5.rwd.js"></script><![endif]
+
+  body
+    div.top
+    div.container
+      p.skip: a(href="#content") Skip to Content
+      // HEADER
+      header.nHead
+        block header
+          h1: a(href="/")
+            img(src='/images/note-bi.png')
+          nav.gnb
+            ul
+              li: a(href="/wikis/#{encodeURIComponent(wikiName)}/new")= __('New note')
+              li: a(href="/wikis/#{encodeURIComponent(wikiName)}/pages")= __('Note list')
+              li: a(href="/wikis/#{encodeURIComponent(wikiName)}/users")= __('Admin')
+          div.account
+            if user
+              span.author: a(href="#")= __('Welcome, %s', user.name)
+            span.btn-group
+              if user
+                a(href="/wikis/#{encodeURIComponent(wikiName)}/users").btn.btn-small
+                  i.icon-cog
+                  = __('Administration')
+                form(method="post", action="/logout").inline
+                  input(type="hidden", name="_method", id='_method', value="post")
+                  button(type="submit").btn.btn-small
+                    i.icon-user
+                    = __('Logout')
+              else
+                a(href="/login").btn.btn-small
+                  i.icon-user
+                  = __('Login')
+              a(href="/admin/mail?to=nforge@nhn.com", title=__("Feedback"), id="feedback").btn.btn-small
+                i.icon-comment
+                = __('Feedback')
+              button(type="button").btn.tog.btn-small
+                i.icon-search
+                = __('Search')
+          form(action="/wikis/#{encodeURIComponent(wikiName)}/pages").search
+            input(type="hidden", name="action", value='search').btn
+            input(type="search", name="keyword", required).si
+            button(type="submit",title=__('Search')).sb
+              i.icon-search
+
+      // /HEADER
+
+      section(id="content", tabindex="0").nBody
+        block section
+          block content
+
+      // FOOTER
+      footer.nFoot
+        block footer
+          p.nforge nforge
+          p.nhn
+            a(href='http://nhn.com') © NHN Corp
+      // /FOOTER
+
+    block script
+      script(src='/scripts/yepnope.js')
+      script(type='text/javascript').
+        yepnope({
+          test: (typeof jQuery !== 'undefined'),
+          yep: '/scripts/custom.js',
+          nope: ['/scripts/jquery.js', '/scripts/custom.js'],
+          complete: function(url, result, key){
+            yepnope({
+              test: ( $().popover === undefined),
+              yep: '/bootstrap/js/bootstrap.js',
+              complete: function(url, result, key){
+                $("#feedback").popover({
+                  content: "개발팀에게 제품에 대한 피드백 보내기",
+                  placement: "bottom"
+                });
+              }
+            });
+          }
+        });
