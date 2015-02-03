@@ -1,0 +1,188 @@
+extends layout
+
+block content
+  div.write.row
+    div.span6
+      form(method="post", id='newpost', action="/wikis/#{encodeURIComponent(wikiName)}/pages")
+        // io: input only | ip: input preview | po: preview only
+        div.ic
+          menu
+            div.btn-group
+              button(type="button").btn.btnWrite.active: strong= __('Editing')
+              button(type="button").btn.btnPreview: strong= __('Preview')
+            button(type="submit", name='save').btn.btn-primary: strong= __('Save')
+          // ic: input container
+          div.ic
+            div.wTitle
+              if newPage == false
+                input(type="hidden", name="originalName", value=pageName)
+              input(type="text", name="name", placeholder=__('Title here'), required="", value=pageName)#pagename
+            div.wText
+              textarea(name="body", placeholder=__('Fill this form'), rows="16", cols="32")#body
+                if typeof body != 'undefined'
+                  = body
+            section.md
+              button(type='button').mdHelp= __('Markdown')
+              div.mdSyntax
+                include markdownHelp.jade
+
+            button(type="button").tog
+              i
+              = __('Preview')
+      form(method="post", id='fileupload', enctype="multipart/form-data", multiple="multiple", action="/wikis/#{encodeURIComponent(wikiName)}/pages/#{encodeURIComponent(attachDir)}/attachment.partial")
+        label(for="attachment")= __('Select file to upload')
+        input(type='file', name='attachment', id='attachment')
+        div.progress.progress-warning
+          div#progressbar.bar
+      div.attachmentList
+        strong= __('File Attachments')
+        ul.files#filelist
+          include fileuploadPartial.jade
+    div.span6
+      fieldset.pc
+        menu
+          div.btn-group
+            button(type="button").btn.btnWrite.active: strong= __('Editing')
+            button(type="button").btn.btnPreview: strong= __('Preview')
+          button(type="submit", name='save').btn.btn-primary: strong= __('Save')
+    div.span6
+      fieldset.pc
+        // pc: preview container
+        article.tx#preview
+
+block prepend script
+  script(type="text/javascript", src="/scripts/jquery.js")
+  script(type="text/javascript", src="/scripts/jquery.form.js")
+  script(type='text/javascript', src="/scripts/underscore.js")
+  script(src='/bootstrap/js/bootstrap.js')
+  script(src="/socket.io/socket.io.js")
+  script(type="text/javascript").
+    // for using highlight.js both server and client
+    var module = module || {}; //This prevents error on 'module.exports' statements
+    // ToDo: Above code will be a problems in someday. Recommend to fix it!
+  script(type="text/javascript", src="/scripts/highlight.js")
+  script(type="text/javascript", src="/scripts/highlight-c.js")
+  script(type="text/javascript", src="/scripts/showdown.js")
+  script(type="text/javascript", src="/scripts/keynavi.js")
+  script(type="text/javascript", src="/codemirror2/lib/codemirror.js")
+  script(type="text/javascript", src="/codemirror2/mode/xml/xml.js")
+  script(type="text/javascript", src="/codemirror2/mode/markdown/markdown.js")
+  script(type="text/javascript", src="/scripts/preview.js")
+  script(type="text/javascript", src="/scripts/sprintf.js")
+  script(type="text/javascript", src="/scripts/i18n.js")
+  script(type="text/javascript", src="/scripts/draft.js")
+  script(type="text/javascript").
+    var editor = CodeMirror.fromTextArea(document.getElementById("body"), {
+      mode: 'markdown',
+      lineNumbers: true,
+      matchBrackets: true,
+      theme: "default",
+      lineWrapping: true
+    });
+    editor
+    activateSubmitKey(function(handler) { editor.setOption('onKeyEvent', handler); });
+    preview.init($(".CodeMirror"), function() { return editor.getValue(); });
+  if newPage
+    script(type="text/javascript").
+      draft.init('n4wiki-new', '#newpost', ['#title', editor]);
+      draft.onRestore(preview.update);
+      $('#title').focus();
+  else
+    script(type="text/javascript").
+      draft.init('n4wiki-edit-' + $('#pagename').val(), '#newpost', [editor]);
+      draft.onRestore(preview.update);
+      $('#body').focus();
+  script(type="text/javascript").
+    var pageId;
+    var socket = io.connect();
+    socket.on('connected', function(id){
+      pageId = id;
+    });
+    socket.on('dupped', function(data){
+      console.log( data );
+      var user = {};
+      if (data.user === "" || data.user === undefined ) {
+        user.id = 'anomynous';
+      } else {
+        user = JSON.parse(data.user);
+      }
+
+      $('#title').popover({title:"Already existed page name!", content: "["+ user.id + "] user already working with this title. Try out another page name.", trigger: 'manual', placement:'bottom'});
+      $('#title').popover('show');
+    });
+
+    socket.on('page name is ok', function(){
+      if( $('#title').val().replace(/ /g, "") !== "" )
+        $('#title').popover('hide');
+    });
+
+    $('#title').keyup(function(){
+      debounce(function(){
+        var title = $('#title').val();
+        socket.emit('page name changed', {name: title, id: pageId, user: '!{JSON.stringify(user)}'});
+      }, 500);
+    });
+  script(type="text/javascript", src="/scripts/timming.js")
+  script(type="text/javascript").
+    $(function(){
+      //JQuery Extension code for insertAtCaret
+      $.fn.extend({
+        insertAtCaret: function(myValue){
+          editor.replaceRange(myValue, editor.getCursor(), editor.getCursor());
+        },
+        removeFromContent: function(removeStr){
+          RegExp.quote = function(str) {
+             return str.replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1");
+          };
+          var editorText = editor.getValue();
+          var regex = new RegExp(RegExp.quote(removeStr), "g");
+          editor.setValue(editorText.replace(regex, ""));
+        }
+      });
+
+      function isImageFile(filename){
+        var imageExtensions = ["jpg","png","gif","bmp","svg","tif","tiff", "jpeg"];
+        var filetype = filename.substring(filename.lastIndexOf('.') + 1);
+        if (_.include(imageExtensions, filetype)){
+          return true;
+        } else {
+          return false;
+        }
+      }
+      //Insert attachments into contents textarea
+      var imageExtensions = ["jpg","png","gif","bmp","svg","tif","tiff", "jpeg"];
+      $('.insertInto').live("click",function(){
+        var filename = $(this).siblings('input:first').val();
+        if ( isImageFile(filename) ){
+          filename = '<img src="/attachment/#{encodeURIComponent(attachDir)}/' + filename + '">';
+        } else {
+          filename = ' [' + filename + '](/attachment/#{encodeURIComponent(attachDir)}/' + filename + ') ';
+        }
+        $('#body').insertAtCaret(filename);
+        preview.update();
+      });
+      $('#filedelete').live("submit", function() {
+        var filename = $(this).find('input').val();
+        var filetype = filename.substring(filename.lastIndexOf('.') + 1);
+        if ( _.include(imageExtensions, filetype) ){
+          filename = '<img src="/attachment/#{encodeURIComponent(attachDir)}/' + filename + '">';
+        } else {
+          filename = ' [' + filename + '](/attachment/#{encodeURIComponent(attachDir)}/' + filename + ') ';
+        }
+        $('#body').removeFromContent(filename);
+        preview.update();
+        return false;
+      });
+    })
+  script(type="text/javascript", src="/scripts/fileupload.js")
+  script(type="text/javascript").
+    //before write post
+    $('#newpost').live("submit", function() {
+      if( $('#title').val().replace(/ /g, "") == "" ) {
+        $('#title').popover({title:"Title text is wrong", content: "Please, fill in the title text"});
+        $('#title').popover('show');
+        return false;
+      }
+      $('#title').popover('show');
+      return true;
+    });
