@@ -54,7 +54,7 @@ $(function(){
 
     function showLoading(target) {
         target.html("<span style='color: #51AACC'><i class='yobicon-loading'></i> loading...</span>");
-        target.animate({width: "400px"});
+        target.animate({width: "450px"});
     }
 
     function format(itemObject){
@@ -73,7 +73,8 @@ $(function(){
             return $yobi.tmpl($("#tplVisitedPage").text(), {
                 "name"      : itemObject.text,
                 "url"       : _extractProjectNameAndNo(element),
-                "author"    : author
+                "author"    : author,
+                "isUpdated" : element.data("isUpdated") || ""
             });
         }
 
@@ -140,8 +141,9 @@ $(function(){
         // preparations
         (function includePathStringAtSearch(){
             var path = itemElement.data("path");
+            var isUpdated = itemElement.data("is-updated") ? "/!!" : "";
             var parsedPath;
-            var prefixForPage = "#/";
+            var prefixForPage = "#/" + isUpdated;
             if(path){
                 parsedPath = path.split("/");
                 text = parsedPath[2] + text + _getPrefixForNoType(parsedPath[3]) + parsedPath[4];    // projectName + no
@@ -198,7 +200,7 @@ $(function(){
         $('#visitedPage').on("select2-highlight, select2-opening", function(){
             $("ul.gnb-nav").hide();
             $("#s2id_visitedPage").show();
-            _patchForWindows();
+            _patchForWebkit();
         });
 
         //resize select2 div to default width
@@ -229,11 +231,13 @@ $(function(){
             })
         }
 
-        var _patchForWindows = function () {
-            if(navigator.platform.toUpperCase() === "WIN32"){
-                //select2 scrollbar is too thick in windows, so hide tooltip.
+        var _patchForWebkit = function () {
+            var isSafari = navigator.userAgent.indexOf('Safari') != -1 && navigator.userAgent.indexOf('Chrome') == -1;
+            var isChrome = !!window.chrome;
+            if(isChrome || isSafari){
+                //select2 scrollbar is too thick in chrome, so hide tooltip.
                 //To prevent it, additional css is required.
-                $(".select2-results").addClass("windowsWebkitScrollbar");
+                $(".select2-results").addClass("webkitScrollbar");
             }
         };
     }
