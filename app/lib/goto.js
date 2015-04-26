@@ -7,10 +7,11 @@ $(function(){
         matcher: fuzzyMatcher
     };
 
-    _addGotoRecentlyContainerHideEvent();
-
     // add pjax event at GoTo-Recently button
     $("#goto-recently-container").pjax('a[data-pjax]', '#goto-recently-container', {push: false, timeout: 8000});
+
+    _addGotoRecentlyContainerHideEvent();
+    _showNewCommentsAddedMessageIfExists();
 
     $(document).on("keypress", function triggerGoToLinkByShortcutKey(event) {
         if (isShortcutKeyPressed(event)) {
@@ -32,7 +33,8 @@ $(function(){
 
         addShortcutAndUIEffectAtGoToRecently();
         addEventAtGoToRecentlySelectBox();
-        addHideEventAtGoToDummyButton
+        addHideEventAtGoToDummyButton();
+        _showNewCommentsAddedMessageIfExists();
 
         setTimeout(function(){  //prevent timing bug at chrome
             $("#visitedPage").select2(SELECT2_CONFIG);
@@ -61,20 +63,19 @@ $(function(){
         var element = $(itemObject.element);
         var author = _extractAuthorOrOwner(element);
         var avatarURL = element.data("avatarUrl");
-        var exceptionalPostfixForPullRequestPage = "/changes";
         var isUpdated = $(element.data("isUpdated"));
 
         if(_hasProjectAvatar(avatarURL)){
             return $yobi.tmpl($("#tplVisitedPageWithAvatar").text(), {
                 "name"      : itemObject.text,
-                "url"       : _extractProjectNameAndNo(element),
+                "url"       : _extractProjectNameAndNo(element.attr("title")),
                 "author"    : author,
                 "avatarURL" : avatarURL
             });
         } else {
             return $yobi.tmpl($("#tplVisitedPage").text(), {
                 "name"      : itemObject.text,
-                "url"       : _extractProjectNameAndNo(element),
+                "url"       : _extractProjectNameAndNo(element.attr("title")),
                 "author"    : author,
                 "isUpdated" : element.data("isUpdated") || ""
             });
@@ -88,8 +89,7 @@ $(function(){
             return authorName || itemElement.data("owner"); //user owner for author if author doesn't provide
         }
 
-        function _extractProjectNameAndNo(path){ //parse project name if title is path
-            var title = element.attr("title");
+        function _extractProjectNameAndNo(title){ //parse project name if title is path
             if(title){
                 var parsed = title.split("/"); //expectation: ["", owner, projectname, issue/board/pullrequest, number]
                 if (parsed[3] && _getNumberPrefixForPageType(parsed[3])) {
@@ -282,7 +282,7 @@ $(function(){
         $("#visitedPage" ).on("change", function(choice){
             if($(choice.added.element[0]).data("isUpdated")){
                 if( _isPullRequestPage(choice.val)){
-                    location.href= choice.val + "/changes";
+                    location.href= choice.val + "/lastComment";
                 } else {
                     location.href= choice.val + "#last-comment";
                 }
@@ -318,6 +318,18 @@ $(function(){
             $("#goto-recently-container").hide();
         }).on("blur", function(){
             $("#goto-recently-container").show(200);
+        });
+    }
+
+    function _showNewCommentsAddedMessageIfExists() {
+        $.ajax({
+            url: "/user/existsRecentlyAddedComments"
+        }).done(function(data){
+            if(data.newComments){
+                $(".new-comments").show();
+            } else {
+                $(".new-comments").hide();
+            };
         });
     }
 });
