@@ -117,6 +117,73 @@ $(function(){
         return undefined;
     }
 
+    var resultMap = {};  // for memoization
+    var prevDepth = 0;       // index for memoization depth according to search text length
+
+    function fuzzyMatcher(search, text, itemElement) {
+        // remove garbage tooltip (tooltip bug)
+        setTimeout(function(){
+            $('.tooltip.right.in').remove();
+        }, 10);
+        var currentDepth = search.length;
+
+        if(prevDepth > currentDepth){ // depth down. erase search text
+            resultMap[prevDepth] = [];
+            prevDepth = currentDepth;
+        }
+
+        if(prevDepth + 1 === currentDepth){ // at the first deeper state
+            resultMap[currentDepth] = [];   // ready for new depth of memo
+            prevDepth = currentDepth;
+        }
+
+        // preparations
+        (function includePathStringAtSearch(){
+            var path = itemElement.data("path");
+            var parsedPath;
+            var prefixForPage = "#/";
+            if(path){
+                parsedPath = path.split("/");
+                text = parsedPath[2] + text + _getPrefixForNoType(parsedPath[3]) + parsedPath[4];    // projectName + no
+                text = prefixForPage + text.replace(/\//g, ""); // remove slashs
+            }
+        }());
+
+        (function includeAuthStringAtSearch(){
+            var author = itemElement.data("author");
+            var mentionPrefix = "@";
+            if(author){
+                text += mentionPrefix + author;
+            }
+        }());
+
+        search = search.toUpperCase();
+        text = text.toUpperCase();
+
+        if(currentDepth > 1 && resultMap[currentDepth-1].indexOf(text) == -1){ // filtering start at 2th depth
+            return false;
+        }
+
+        var j = -1; // remembers position of last found character
+
+        // consider each search character one at a time
+        for (var i = 0; i < search.length; i++) {
+            var l = search[i];
+            if (l == ' ') continue;     // ignore spaces
+
+            j = text.indexOf(l, j+1);   // search for character & update position
+            if (j == -1) {
+                return false;
+            }  // if it's not found, exclude this item
+        }
+
+        if (currentDepth !== 0){  // ignore when search text doesn't exist
+            resultMap[currentDepth].push(text);
+            console.log(currentDepth, ": ", text);
+        }
+        return true;
+    }
+
     function addShortcutAndUIEffectAtGoToRecently() {
         // to prevent css width calculation bug when auto calculated width has point value
 
