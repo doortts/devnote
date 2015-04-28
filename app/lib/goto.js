@@ -49,9 +49,7 @@ $(function(){
     });
 
     function preventAdditionalClick(target) {
-        target.on("click", function () {
-            return false;
-        });
+        target.removeAttr('onclick');
     }
 
     function showLoading(target) {
@@ -149,11 +147,47 @@ $(function(){
     }
 
     function fuzzyMatcher(search, text, itemElement) {
+
+        //
+        // preparation start
+        //
+        // 1. workaround tooltip bug
         _removeGarbageTooltip();
 
+        // 2. include path string at search
+        var path = itemElement.data("path");
+        var isUpdated = itemElement.data("is-updated") ? "/!!" : ""; // marker for newly updated page
+        var parsedPath;
+        var prefixForPage = "#/" + isUpdated;
+        if(path){
+            parsedPath = path.split("/");
+            if(parsedPath.length < 4){
+                console.log("Wrong url path format: ", path);
+                return;
+            }
+            text = parsedPath[2] + text + _getNumberPrefixForPageType(parsedPath[3]) + parsedPath[4];    // projectName + no
+            text = prefixForPage + text.replace(/\//g, ""); // remove slashes in path url
+        }
+
+        // 3. include author string at search
+        var author = itemElement.data("author");
+        var mentionPrefix = "@";
+        if(author){
+            text += mentionPrefix + author;
+        }
+
+        // 4. change to uppercase
+        search = search.toUpperCase();
+        text = text.toUpperCase();
+        // preparations end here
+
+        //
+        // fuzzy search start from here
+        //
+        // 1. arrange search word depth
         var currentDepth = search.length;
 
-        if(prevDepth > currentDepth){ // if depth is decreased. eg. user remove search character
+        if(prevDepth > currentDepth){       // if depth is decreased, remove previous depth search result
             resultMap[prevDepth] = [];
             prevDepth = currentDepth;
         }
@@ -163,67 +197,37 @@ $(function(){
             prevDepth = currentDepth;
         }
 
-        // preparations
-        (function includePathToSearchScope(){
-            var path = itemElement.data("path");
-            var isUpdated = itemElement.data("is-updated") ? "/!!" : ""; // marker for newly updated page
-            var parsedPath;
-            var prefixForPage = "#/" + isUpdated;
-            if(path){
-                parsedPath = path.split("/");
-                if(parsedPath.length < 4){
-                    console.log("Wrong url path format: ", path);
-                    return;
-                }
-                text = parsedPath[2] + text + _getNumberPrefixForPageType(parsedPath[3]) + parsedPath[4];    // projectName + no
-                text = prefixForPage + text.replace(/\//g, ""); // remove slashes in path url
-            }
-        }());
-
-        (function includeAuthorToSearchScope(){
-            var author = itemElement.data("author");
-            var mentionPrefix = "@";
-            if(author){
-                text += mentionPrefix + author;
-            }
-        }());
-
-        search = search.toUpperCase();
-        text = text.toUpperCase();
-
         if(currentDepth > 1 && isMatchedAlreadyAtPreviousDepth(currentDepth, text)){ // filtering start at 2th depth
             return false;
         }
 
-        var lastFoundPosition = -1; // remembers position of last found character
-
-        // consider each search character one at a time
-        for (var i = 0; i < search.length; i++) {
+        // 2. match character
+        var lastFoundPosition = -1;              // remembers position of last found character
+        for (var i = 0; i < currentDepth; i++) { // consider each search character one at a time
             var char = search[i];
-            if (char == ' ') continue;     // ignore spaces
+            if (char == ' ') continue;           // ignore spaces
 
             lastFoundPosition = text.indexOf(char, lastFoundPosition + 1);   // search for character & update position
-            if (lastFoundPosition == -1) {
+            if (lastFoundPosition == -1) {       // if it's not found, exclude this item
                 return false;
-            }  // if it's not found, exclude this item
+            }
         }
 
-        if (currentDepth !== 0){  // ignore when search text doesn't exist
+        // 3. store matched text
+        if (currentDepth !== 0){                 // ignore when search text doesn't exist
             resultMap[currentDepth].push(text);
         }
         return true;
     }
 
-    function _removeGarbageTooltip() {
-        // remove garbage tooltip (tooltip bug workaround)
+    function _removeGarbageTooltip() { // remove garbage tooltip (tooltip bug workaround)
         setTimeout(function () {
             $('.tooltip.right.in').remove();
         }, 10);
     }
 
+    // to prevent css width calculation bug when auto calculated width has point value
     function addShortcutAndUIEffectAtGoToRecently() {
-        // to prevent css width calculation bug when auto calculated width has point value
-
         if( $("#visitedPage").length ) {
             // to prevent flickering
             $("#visitedPage").css("visibility", "visible");
